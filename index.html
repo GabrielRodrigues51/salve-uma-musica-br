@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Salve Uma Música</title>
+<meta name="description" content="Dez músicas brasileiras por ano. Você só pode salvar uma.">
+<meta property="og:title" content="Salve Uma Música">
+<meta property="og:description" content="Dez músicas brasileiras por ano. Você só pode salvar uma. Qual fica?">
+<meta property="og:image" content="/bg.jpg">
+<meta name="theme-color" content="#0d0b0a">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cinzel:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body class="on-home">
+<div class="bg"></div>
+
+<!-- HOME -->
+<section id="scrHome" class="screen">
+  <nav class="cats" id="cats"></nav>
+  <div class="home-center">
+    <h1 class="title">Salve<br>Uma Música</h1>
+    <p class="tagline">Dez músicas por ano. Você só pode salvar uma.</p>
+    <div class="menu">
+      <button class="btn gold hidden" id="mContinue">Continuar</button>
+      <button class="btn" id="mNew">Novo jogo</button>
+      <button class="btn" id="mYear">Escolher ano</button>
+      <button class="btn" id="mRank">Rankings</button>
+    </div>
+    <p class="cat-info" id="catInfo"></p>
+  </div>
+</section>
+
+<!-- ESCOLHER ANO -->
+<section id="scrYears" class="screen hidden">
+  <button class="icon close" data-home aria-label="Fechar">✕</button>
+  <h2 class="h2">Escolher ano</h2>
+  <p class="sub" id="yearsSub"></p>
+  <div class="years" id="years"></div>
+</section>
+
+<!-- JOGO -->
+<section id="scrGame" class="screen hidden">
+  <label class="toggle"><input type="checkbox" id="fast"><span></span>Modo rápido</label>
+  <button class="icon close" data-home aria-label="Fechar">✕</button>
+  <div class="year-intro" id="yearIntro"></div>
+  <h2 class="year-title" id="yearTitle"></h2>
+  <div class="grid" id="grid"></div>
+  <p class="hint" id="hint"></p>
+  <button class="prev" id="prevYear">← Ano anterior</button>
+  <button class="mute" id="mute" aria-label="Som">🔊</button>
+</section>
+
+<!-- RESULTADO DO ANO -->
+<section id="scrResult" class="screen hidden">
+  <button class="icon close" data-home aria-label="Fechar">✕</button>
+  <h2 class="rank-title">Ranking geral</h2>
+  <p class="sub center" id="resultSub">Clique para continuar</p>
+  <div class="grid result" id="resultGrid"></div>
+</section>
+
+<!-- FIM -->
+<section id="scrDone" class="screen hidden">
+  <button class="icon close" data-home aria-label="Fechar">✕</button>
+  <h2 class="h2">Sua lista</h2>
+  <p class="sub" id="doneSub"></p>
+  <div class="row-btns">
+    <button class="btn gold" id="shareBtn">Compartilhar</button>
+    <button class="btn" id="doneRank">Ver rankings</button>
+    <button class="btn" data-home>Outra categoria</button>
+  </div>
+  <ol class="picks" id="picks"></ol>
+</section>
+
+<!-- RANKINGS -->
+<section id="scrRank" class="screen hidden">
+  <button class="icon close" data-home aria-label="Fechar">✕</button>
+  <h2 class="rank-big">Rankings</h2>
+  <nav class="cats small" id="rankCats"></nav>
+  <p class="sub center" id="rankSub"></p>
+  <div class="decades" id="decades"></div>
+  <div class="yearlist" id="yearlist"></div>
+</section>
+
+<div id="toast" class="toast hidden"></div>
+<script src="/app.js"></script>
+</body>
+</html>
