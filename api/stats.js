@@ -8,7 +8,7 @@ export default async function handler(req, res) {
   const years = String(req.query.years || req.query.year || '').split(',').map(y => parseInt(y, 10)).filter(y => y >= 1950 && y <= 2030).slice(0, 60);
   if (!years.length) return res.status(400).json({ error: 'bad_request' });
   try {
-    const out = await pipeline(years.map(y => ['HGETALL', `v:${cat}:${y}`]));
+    const out = await pipeline(years.map(y => ['HGETALL', `s:${cat}:${y}`]));
     const data = {}; years.forEach((y, i) => { data[y] = toCounts(out[i]); });
     res.setHeader('Cache-Control', 's-maxage=15, stale-while-revalidate=60');
     return res.json({ data });
