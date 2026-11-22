@@ -74,7 +74,7 @@ function stopClip() {
   clip.card.querySelector('.prog').style.width = '0';
   const done = clip.resolve; clip = null; done && done();
 }
-function playClip(card, song, secs) {
+function playClip(card, song, secs, from = 0) {
   stopClip();
   return new Promise(async resolve => {
     const d = await track(song);
@@ -83,7 +83,9 @@ function playClip(card, song, secs) {
     clip = { card, a, resolve: () => resolve(true) };
     card.classList.add('playing');
     card.querySelector('.play').textContent = '❚❚';
-    a.pause(); a.currentTime = 0; a.muted = settings.muted; a.volume = 1;
+    a.pause(); a.muted = settings.muted; a.volume = 1;
+    const seek = () => { try { a.currentTime = from; } catch {} };
+    if (a.readyState >= 1) seek(); else a.addEventListener('loadedmetadata', seek, { once: true });
     const bar = card.querySelector('.prog');
     const start = () => {                               // só começa a contar quando o som sai de fato
       if (!clip || clip.a !== a || clip.t0) return;
@@ -102,7 +104,8 @@ function playClip(card, song, secs) {
     a.onplaying = start;
     a.onended = stopClip;
     clip.guard = setTimeout(stopClip, 9000);           // se não carregar em 9 s, segue para a próxima
-    a.play().then(() => { if (!a.paused && a.readyState >= 3) start(); }).catch(() => {});
+    const go = () => a.play().then(() => { if (!a.paused && a.readyState >= 3) start(); }).catch(() => {});
+    if (a.readyState >= 1) go(); else a.addEventListener('loadedmetadata', go, { once: true });
   });
 }
 const wait = ms => new Promise(r => setTimeout(r, ms));
@@ -181,7 +184,7 @@ async function startYear(i) {
       e.stopPropagation();
       if (clip && clip.card === c) { stopClip(); return; }
       seq++; revealAll(cards);                     // interrompe a sequência automática
-      playClip(c, s, CLIP_FULL);
+      playClip(c, s, CLIP_FULL, Math.max(0, Math.min((s.o || 0) - 3, 10)));   // 20 s começando um pouco antes do refrão
     };
     c.querySelector('.save').onclick = e => { e.stopPropagation(); save(j); };
   });
@@ -199,7 +202,7 @@ async function startYear(i) {
     if (rc.bottom > innerHeight || rc.top < 0) cards[j].scrollIntoView({ block: 'center', behavior: 'smooth' });
     await wait(500);                                    // card aparece, respira, e aí toca
     if (my !== seq) return;
-    const ok = await playClip(cards[j], songs[j], CLIP_AUTO);
+    const ok = await playClip(cards[j], songs[j], CLIP_AUTO, songs[j].o || 0);   // 5 s no trecho mais forte (refrão)
     if (my !== seq) return;
     await wait(ok ? 1000 : 900);                        // 1 segundo entre uma música e outra
   }
