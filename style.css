@@ -126,3 +126,9 @@ body:not(.on-home) .bg{opacity:.18}
 .notice-box p.small{font-size:13px;color:var(--mut)}
 .notice-box b{color:var(--gold);font-weight:600}
 .notice-box .row-btns{margin:16px 0 0}
+
+/* resultado: selo da mais salva e player */
+.result .cover .badge{position:absolute;top:8px;left:8px;z-index:2;background:var(--gold);color:#1a1300;font-size:14px;padding:2px 8px;border-radius:4px}
+.result .cover .play{display:none}
+.result .cover .prog{z-index:2}
+.result .card.playing .cover{border-color:var(--gold)}

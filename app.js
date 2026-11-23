@@ -236,12 +236,19 @@ function fmtPct(p) { return (p >= 10 || p === 0 ? p.toFixed(0) : p.toFixed(1)).r
 function showResult(y, mine, counts) {
   const songs = CAT.years[y], { tot, pct } = pctMap(counts);
   const best = counts ? Math.max(...songs.map((_, i) => pct(i))) : -1;
-  $('#resultSub').textContent = counts ? `${y} · ${tot.toLocaleString('pt-BR')} votos · clique para continuar` : `${y} · o ranking geral será ativado em breve · clique para continuar`;
-  $('#resultGrid').innerHTML = songs.map((s, i) => `<div class="card in${i === mine ? ' mine' : ''}${counts && pct(i) === best && best > 0 ? ' top' : ''}">
-      <div class="cover" data-pct="${counts ? fmtPct(pct(i)) : (i === mine ? '✓' : '')}"></div>
+  // a mais salva pela galera (em empate, fica a primeira da lista)
+  const topI = counts && best > 0 ? songs.findIndex((_, i) => pct(i) === best) : -1;
+  $('#resultSub').textContent = `${y} · clique para continuar`;
+  $('#resultGrid').innerHTML = songs.map((s, i) => `<div class="card in${i === mine ? ' mine' : ''}${i === topI ? ' top' : ''}">
+      <div class="cover" data-pct="${counts ? fmtPct(pct(i)) : (i === mine ? '✓' : '')}"><button class="play" aria-hidden="true" tabindex="-1">▶</button><div class="prog"></div></div>
       <div class="info"><div class="t">${esc(s.t)}</div><div class="a">${esc(s.a)}</div></div></div>`).join('');
-  $$('#resultGrid .card').forEach((c, i) => track(songs[i]).then(d => { if (d && d.cover) c.querySelector('.cover').style.backgroundImage = `url("${d.cover}")`; }));
+  const cards = $$('#resultGrid .card');
+  cards.forEach((c, i) => {
+    track(songs[i]).then(d => { if (d && d.cover) c.querySelector('.cover').style.backgroundImage = `url("${d.cover}")`; });
+  });
   show('scrResult');
+  // toca 20 s da música que a galera mais salvou
+  if (topI >= 0) { const s = songs[topI]; setTimeout(() => { if (!$('#scrResult').classList.contains('hidden')) playClip(cards[topI], s, CLIP_FULL, Math.max(0, Math.min((s.o || 0) - 3, 10))); }, 600); }
 }
 $('#scrResult').onclick = e => {
   if (e.target.closest('[data-home]')) return;
