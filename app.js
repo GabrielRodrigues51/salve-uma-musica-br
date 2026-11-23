@@ -345,4 +345,7 @@ function route() {
   home();
 }
 window.addEventListener('hashchange', () => { if (!route._self) route(); });
-fetch('/data/catalog.json').then(r => r.json()).then(d => { CATS = d.categorias; route(); });
+// a lista de músicas fica em /catalog.json (raiz do repositório); /data/catalog.json é o reserva
+fetch('/catalog.json', { cache: 'no-cache' }).then(r => { if (!r.ok) throw 0; return r.json(); })
+  .catch(() => fetch('/data/catalog.json', { cache: 'no-cache' }).then(r => r.json()))
+  .then(d => { CATS = d.categorias; route(); });
