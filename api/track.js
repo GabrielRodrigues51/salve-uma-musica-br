@@ -22,7 +22,8 @@ export default async function handler(req, res) {
     const d = await dz(`https://api.deezer.com/search?limit=5&q=${encodeURIComponent(q)}`);
     t = ((d && d.data) || []).find(x => x.preview) || null;
   }
-  if (!t) { res.setHeader('Cache-Control', 's-maxage=300'); return res.status(404).json({ error: 'not_found' }); }
-  res.setHeader('Cache-Control', 's-maxage=1800, stale-while-revalidate=600');
+  if (!t) { res.setHeader('Cache-Control', 's-maxage=120'); return res.status(404).json({ error: 'not_found' }); }
+  // o link do trecho do Deezer vence em ~15 min: o cache tem que ser bem menor que isso
+  res.setHeader('Cache-Control', 's-maxage=240');
   return res.json({ id: t.id, preview: t.preview, link: t.link, cover: t.album?.cover_big || t.album?.cover_medium || '' });
 }
