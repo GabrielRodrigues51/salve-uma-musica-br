@@ -140,9 +140,10 @@ function home() {
   show('scrHome');
 }
 function notice(go) {
+  if (ls.get('notice_' + CAT.id, false)) return go();   // o aviso aparece só na primeira vez em cada gênero
   $('#noticeCat').textContent = CAT.nome;
   $('#notice').classList.remove('hidden');
-  $('#noticeGo').onclick = () => { $('#notice').classList.add('hidden'); go(); };
+  $('#noticeGo').onclick = () => { ls.set('notice_' + CAT.id, true); $('#notice').classList.add('hidden'); go(); };
   $('#noticeBack').onclick = () => $('#notice').classList.add('hidden');
 }
 $('#mNew').onclick = () => notice(newGame);
