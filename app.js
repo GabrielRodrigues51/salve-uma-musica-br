@@ -49,14 +49,17 @@ function limited(fn) {                            // no máximo 4 buscas ao mesm
     active < 4 ? run() : queue.push(run);
   });
 }
-function track(song) {
+// o link do trecho expira em ~15 min: guarda no máximo 8 min e, se falhar, busca de novo
+const FRESH_MS = 8 * 60 * 1000;
+function track(song, force = false) {
   const key = song.id || song.t + '|' + song.a;
-  if (!trackCache[key]) {
+  const c = trackCache[key];
+  if (force || !c || Date.now() - c.at > FRESH_MS) {
     const q = encodeURIComponent(`${song.t} ${song.a}`);
-    const url = song.id ? `/api/track?id=${song.id}&q=${q}` : `/api/track?q=${q}`;
-    trackCache[key] = limited(() => fetch(url).then(r => r.ok ? r.json() : null).catch(() => null));
+    const url = (song.id ? `/api/track?id=${song.id}&q=${q}` : `/api/track?q=${q}`) + (force ? `&r=${Date.now()}` : '');
+    trackCache[key] = { at: Date.now(), p: limited(() => fetch(url).then(r => r.ok ? r.json() : null).catch(() => null)) };
   }
-  return trackCache[key];
+  return trackCache[key].p;
 }
 
 // ---------- áudio ----------
@@ -74,10 +77,10 @@ function stopClip() {
   clip.card.querySelector('.prog').style.width = '0';
   const done = clip.resolve; clip = null; done && done();
 }
-function playClip(card, song, secs, from = 0) {
+function playClip(card, song, secs, from = 0, retry = true) {
   stopClip();
   return new Promise(async resolve => {
-    const d = await track(song);
+    const d = await track(song, !retry);
     if (!d || !d.preview) { resolve(false); return; }
     const a = playerFor(d.preview);
     clip = { card, a, resolve: () => resolve(true) };
@@ -103,7 +106,14 @@ function playClip(card, song, secs, from = 0) {
     };
     a.onplaying = start;
     a.onended = stopClip;
+    a.onerror = () => {                                 // link vencido/bloqueado: pega um link novo e tenta 1 vez
+      if (!clip || clip.a !== a || clip.t0) return;
+      delete players[d.preview];
+      const done = clip.resolve; clearTimeout(clip.guard); clip.resolve = null; stopClip();
+      if (retry) playClip(card, song, secs, from, false).then(done); else done && done();
+    };
     clip.guard = setTimeout(stopClip, 9000);           // se não carregar em 9 s, segue para a próxima
+    if (a.error) { a.onerror(); return; }              // o pré-carregamento já tinha falhado
     const go = () => a.play().then(() => { if (!a.paused && a.readyState >= 3) start(); }).catch(() => {});
     if (a.readyState >= 1) go(); else a.addEventListener('loadedmetadata', go, { once: true });
   });
