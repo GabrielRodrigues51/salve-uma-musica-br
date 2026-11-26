@@ -64,10 +64,27 @@ function track(song, force = false) {
 
 // ---------- áudio ----------
 const players = {};
-function playerFor(url) {
-  if (!players[url]) { const a = new Audio(); a.preload = 'auto'; a.src = url; a.load(); players[url] = a; }
-  return players[url];
+// um player por trecho; já posiciona no ponto do refrão para o navegador carregar a partir dali
+function playerFor(url, from = 0) {
+  let a = players[url];
+  if (!a) {
+    a = new Audio(); a.preload = 'auto'; a.__from = from;
+    a.addEventListener('loadedmetadata', () => { try { a.currentTime = a.__from; } catch {} }, { once: true });
+    a.src = url; a.load(); players[url] = a;
+  }
+  return a;
 }
+// espera ter áudio suficiente no ponto de início (evita a "picotada" logo depois que começa)
+function whenReady(a, ms = 3000) {
+  return new Promise(res => {
+    if (a.readyState >= 4 && !a.seeking) return res();
+    const t = setTimeout(done, ms);
+    function done() { clearTimeout(t); a.removeEventListener('canplaythrough', done); a.removeEventListener('seeked', chk); res(); }
+    function chk() { if (a.readyState >= 4) done(); }
+    a.addEventListener('canplaythrough', done); a.addEventListener('seeked', chk);
+  });
+}
+function prefetch(song) { if (song) track(song).then(d => { if (d && d.preview) playerFor(d.preview, song.o || 0); }); }
 function stopClip() {
   if (!clip) return;
   clearTimeout(clip.timer); clearTimeout(clip.guard); cancelAnimationFrame(clip.raf);
@@ -82,12 +99,13 @@ function playClip(card, song, secs, from = 0, retry = true) {
   return new Promise(async resolve => {
     const d = await track(song, !retry);
     if (!d || !d.preview) { resolve(false); return; }
-    const a = playerFor(d.preview);
+    const a = playerFor(d.preview, from);
     clip = { card, a, resolve: () => resolve(true) };
     card.classList.add('playing');
     card.querySelector('.play').textContent = '❚❚';
-    a.pause(); a.muted = settings.muted; a.volume = 1;
-    const seek = () => { try { a.currentTime = from; } catch {} };
+    a.pause(); a.muted = settings.muted; a.volume = 0;
+    a.__from = from;
+    const seek = () => { if (Math.abs(a.currentTime - from) > 0.25) { try { a.currentTime = from; } catch {} } };
     if (a.readyState >= 1) seek(); else a.addEventListener('loadedmetadata', seek, { once: true });
     const bar = card.querySelector('.prog');
     const start = () => {                               // só começa a contar quando o som sai de fato
@@ -98,7 +116,7 @@ function playClip(card, song, secs, from = 0, retry = true) {
         if (!clip || clip.a !== a) return;
         const el = (performance.now() - clip.t0) / 1000;
         bar.style.width = Math.min(100, 100 * el / secs) + '%';
-        if (el > secs - 0.5) a.volume = Math.max(0, (secs - el) / 0.5);   // fade out no final
+        a.volume = Math.max(0, Math.min(1, el / 0.25, (secs - el) / 0.5));  // entra suave e sai suave
         clip.raf = requestAnimationFrame(tick);
       };
       tick();
@@ -114,7 +132,7 @@ function playClip(card, song, secs, from = 0, retry = true) {
     };
     clip.guard = setTimeout(stopClip, 9000);           // se não carregar em 9 s, segue para a próxima
     if (a.error) { a.onerror(); return; }              // o pré-carregamento já tinha falhado
-    const go = () => a.play().then(() => { if (!a.paused && a.readyState >= 3) start(); }).catch(() => {});
+    const go = async () => { await whenReady(a); if (!clip || clip.a !== a) return; a.play().then(() => { if (!a.paused && a.readyState >= 3) start(); }).catch(() => {}); };
     if (a.readyState >= 1) go(); else a.addEventListener('loadedmetadata', go, { once: true });
   });
 }
@@ -187,7 +205,6 @@ async function startYear(i) {
   songs.forEach((s, j) => {
     const c = cards[j];
     track(s).then(d => {
-      if (d && d.preview) playerFor(d.preview);
       if (d && d.cover) c.querySelector('.cover').style.backgroundImage = `url("${d.cover}")`;
       if (!d || !d.preview) { c.querySelector('.play').disabled = true; c.querySelector('.na').textContent = 'Trecho indisponível'; }
     });
@@ -199,6 +216,7 @@ async function startYear(i) {
     };
     c.querySelector('.save').onclick = e => { e.stopPropagation(); save(j); };
   });
+  if (!settings.fast) prefetch(songs[0]);              // começa a carregar o 1º trecho durante a intro
   // intro do ano
   const intro = $('#yearIntro');
   intro.textContent = y; intro.classList.remove('show'); void intro.offsetWidth;
@@ -211,6 +229,7 @@ async function startYear(i) {
     cards[j].classList.add('in');
     const rc = cards[j].getBoundingClientRect();
     if (rc.bottom > innerHeight || rc.top < 0) cards[j].scrollIntoView({ block: 'center', behavior: 'smooth' });
+    prefetch(songs[j + 1]);                             // já vai carregando o próximo
     await wait(500);                                    // card aparece, respira, e aí toca
     if (my !== seq) return;
     const ok = await playClip(cards[j], songs[j], CLIP_AUTO, songs[j].o || 0);   // 5 s no trecho mais forte (refrão)
